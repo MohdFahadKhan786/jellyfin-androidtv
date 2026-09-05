@@ -24,63 +24,66 @@ import org.jellyfin.sdk.model.api.BaseItemDto
 
 @Composable
 fun NetflixHero(
-    item: BaseItemDto,
-    onPlay: (BaseItemDto) -> Unit,
-    onDetails: (BaseItemDto) -> Unit,
-    modifier: Modifier = Modifier,
+	item: BaseItemDto,
+	onPlay: (BaseItemDto) -> Unit,
+	onDetails: (BaseItemDto) -> Unit,
+	modifier: Modifier = Modifier,
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(430.dp)
-            .background(
-                Brush.verticalGradient(
-                    listOf(
-                        Color.Transparent,
-                        Color.Transparent,
-                        Color.Black.copy(alpha = 0.86f),
-                        Color.Black,
-                    )
-                )
-            )
-    ) {
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(start = 52.dp, end = 52.dp, bottom = 34.dp)
-                .width(620.dp),
-        ) {
-            Text(
-                text = item.name.orEmpty(),
-                fontWeight = FontWeight.Bold,
-                color = Color.White,
-            )
-            Spacer(Modifier.height(12.dp))
-            Text(
-                text = buildString {
-                    item.productionYear?.let { append(it) }
-                    item.officialRating?.let {
-                        if (isNotEmpty()) append("  •  ")
-                        append(it)
-                    }
-                    item.genres?.take(3)?.joinToString("  •  ")?.let {
-                        if (isNotEmpty()) append("  •  ")
-                        append(it)
-                    }
-                },
-                color = Color.White.copy(alpha = 0.9f),
-            )
-            Spacer(Modifier.height(18.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Button(
-                    onClick = { onPlay(item) },
-                    shape = RoundedCornerShape(24.dp),
-                ) { Text("Play") }
-                Button(
-                    onClick = { onDetails(item) },
-                    shape = RoundedCornerShape(24.dp),
-                ) { Text("More Info") }
-            }
-        }
-    }
+	Box(
+		modifier = modifier
+			.fillMaxWidth()
+			.height(430.dp)
+			.background(
+				Brush.horizontalGradient(
+					0f to Color.Black.copy(alpha = 0.88f),
+					0.55f to Color.Black.copy(alpha = 0.28f),
+					1f to Color.Transparent,
+				)
+			),
+	) {
+		Box(modifier = Modifier.matchParentSize().background(
+			Brush.verticalGradient(
+				0f to Color.Transparent,
+				0.62f to Color.Transparent,
+				1f to Color.Black,
+			)
+		))
+
+		Column(
+			modifier = Modifier
+				.align(Alignment.BottomStart)
+				.padding(start = 52.dp, end = 52.dp, bottom = 40.dp)
+				.width(620.dp),
+		) {
+			Text(
+				text = item.name.orEmpty(),
+				fontWeight = FontWeight.Bold,
+				color = Color.White,
+			)
+			Spacer(Modifier.height(12.dp))
+			Text(
+				text = buildString {
+					item.productionYear?.let { append(it) }
+					item.officialRating?.let {
+						if (isNotEmpty()) append("  •  ")
+						append(it)
+					}
+					item.genres?.take(3)?.joinToString("  •  ")?.let {
+						if (isNotEmpty()) append("  •  ")
+						append(it)
+					}
+				},
+				color = Color.White.copy(alpha = 0.9f),
+			)
+			Spacer(Modifier.height(18.dp))
+			Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+				Button(onClick = { onPlay(item) }, shape = RoundedCornerShape(22.dp)) {
+					Text("Play")
+				}
+				Button(onClick = { onDetails(item) }, shape = RoundedCornerShape(22.dp)) {
+					Text("More Info")
+				}
+			}
+		}
+	}
 }
