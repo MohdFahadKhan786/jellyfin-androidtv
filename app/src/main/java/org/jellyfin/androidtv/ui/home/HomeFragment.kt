@@ -30,14 +30,20 @@ import org.jellyfin.androidtv.auth.repository.ServerRepository
 import org.jellyfin.androidtv.auth.repository.SessionRepository
 import org.jellyfin.androidtv.data.repository.NotificationsRepository
 import org.jellyfin.androidtv.ui.base.JellyfinTheme
+import org.jellyfin.androidtv.ui.navigation.Destinations
+import org.jellyfin.androidtv.ui.navigation.NavigationRepository
 import org.jellyfin.androidtv.ui.shared.toolbar.MainToolbar
 import org.jellyfin.androidtv.ui.shared.toolbar.MainToolbarActiveButton
+import org.jellyfin.androidtv.ui.playback.PlaybackLauncher
+import org.jellyfin.sdk.model.api.BaseItemDto
 import org.koin.android.ext.android.inject
 
 class HomeFragment : Fragment() {
 	private val sessionRepository by inject<SessionRepository>()
 	private val serverRepository by inject<ServerRepository>()
 	private val notificationRepository by inject<NotificationsRepository>()
+	private val navigationRepository by inject<NavigationRepository>()
+	private val playbackLauncher by inject<PlaybackLauncher>()
 
 	override fun onCreateView(
 		inflater: LayoutInflater,
@@ -45,16 +51,23 @@ class HomeFragment : Fragment() {
 		savedInstanceState: Bundle?
 	) = content {
 		val rowsFocusRequester = remember { FocusRequester() }
+		var rowsSupportFragment by remember { mutableStateOf<HomeRowsFragment?>(null) }
+		var heroItem by remember { mutableStateOf<BaseItemDto?>(null) }
+
 		LaunchedEffect(rowsFocusRequester) { rowsFocusRequester.requestFocus() }
 
 		JellyfinTheme {
 			Column {
 				MainToolbar(MainToolbarActiveButton.Home)
 
-				// The leanback code has its own awful focus handling that doesn't work properly with Compose view inteop to workaround this
-				// issue we add custom behavior that only allows focus exit when the current selected row is the first one. Additionally when
-				// we do switch the focus, we reset the leanback state so it won't cause weird behavior when focus is regained
-				var rowsSupportFragment by remember { mutableStateOf<HomeRowsFragment?>(null) }
+				if (heroItem != null) {
+					HomeHero(
+						item = heroItem!!,
+						onPlay = { item -> playbackLauncher.launch(requireContext(), listOf(item)) },
+						onDetails = { item -> navigationRepository.navigate(Destinations.itemDetails(item.id)) },
+					)
+				}
+
 				AndroidFragment<HomeRowsFragment>(
 					modifier = Modifier
 						.focusGroup()
@@ -71,9 +84,7 @@ class HomeFragment : Fragment() {
 							}
 						}
 						.fillMaxSize(),
-					onUpdate = { fragment ->
-						rowsSupportFragment = fragment
-					}
+					onUpdate = { fragment -> rowsSupportFragment = fragment },
 				)
 			}
 		}
@@ -84,13 +95,8 @@ class HomeFragment : Fragment() {
 
 		sessionRepository.currentSession
 			.flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)
-			.map { session ->
-				if (session == null) null
-				else serverRepository.getServer(session.serverId)
-			}
-			.onEach { server ->
-				notificationRepository.updateServerNotifications(server)
-			}
+			.map { session -> if (session == null) null else serverRepository.getServer(session.serverId) }
+			.onEach { server -> notificationRepository.updateServerNotifications(server) }
 			.launchIn(viewLifecycleOwner.lifecycleScope)
 	}
 }
