@@ -3,7 +3,6 @@ package org.jellyfin.androidtv.ui.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,8 +22,7 @@ fun NetflixTopNav(
     Row(
         modifier = modifier
             .height(76.dp)
-            .background(Color.Black.copy(alpha = 0.96f))
-            .padding(horizontal = 28.dp),
+            .background(Color.Black.copy(alpha = 0.96f)),
         horizontalArrangement = Arrangement.spacedBy(4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -53,7 +51,11 @@ private fun NetflixNavButton(
     ) {
         Text(
             text = item.label,
-            color = if (item == active) Color.White else Color.White.copy(alpha = 0.78f),
+            color = if (item == active) {
+                Color.White
+            } else {
+                Color.White.copy(alpha = 0.78f)
+            },
         )
     }
 }
