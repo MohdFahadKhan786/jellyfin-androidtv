@@ -6,6 +6,7 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.compose.foundation.background
 import androidx.compose.foundation.focusGroup
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -35,7 +36,6 @@ import org.jellyfin.androidtv.auth.repository.ServerRepository
 import org.jellyfin.androidtv.auth.repository.SessionRepository
 import org.jellyfin.androidtv.data.repository.NotificationsRepository
 import org.jellyfin.androidtv.ui.base.JellyfinTheme
-import org.jellyfin.androidtv.ui.shared.toolbar.MainToolbarActiveButton
 import org.koin.android.ext.android.inject
 
 class HomeFragment : Fragment() {
@@ -62,7 +62,14 @@ class HomeFragment : Fragment() {
                 Column {
                     NetflixTopNav(
                         active = NetflixNavItem.Home,
-                        onNavigate = { },
+                        onNavigate = { destination ->
+                            when (destination) {
+                                NetflixNavItem.Home -> Unit
+                                NetflixNavItem.TVShows,
+                                NetflixNavItem.Movies,
+                                NetflixNavItem.NewPopular -> rowsSupportFragment?.scrollToPosition(0)
+                            }
+                        },
                         modifier = Modifier.padding(top = 8.dp),
                     )
 
