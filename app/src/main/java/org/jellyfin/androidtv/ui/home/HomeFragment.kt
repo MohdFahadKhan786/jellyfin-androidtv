@@ -51,6 +51,9 @@ class HomeFragment : Fragment() {
 			Column {
 				MainToolbar(MainToolbarActiveButton.Home)
 
+				// The leanback code has its own awful focus handling that doesn't work properly with Compose view inteop to workaround this
+				// issue we add custom behavior that only allows focus exit when the current selected row is the first one. Additionally when
+				// we do switch the focus, we reset the leanback state so it won't cause weird behavior when focus is regained
 				var rowsSupportFragment by remember { mutableStateOf<HomeRowsFragment?>(null) }
 				AndroidFragment<HomeRowsFragment>(
 					modifier = Modifier
@@ -68,7 +71,9 @@ class HomeFragment : Fragment() {
 							}
 						}
 						.fillMaxSize(),
-					onUpdate = { fragment -> rowsSupportFragment = fragment },
+					onUpdate = { fragment ->
+						rowsSupportFragment = fragment
+					}
 				)
 			}
 		}
@@ -79,8 +84,13 @@ class HomeFragment : Fragment() {
 
 		sessionRepository.currentSession
 			.flowWithLifecycle(viewLifecycleOwner.lifecycle, Lifecycle.State.STARTED)
-			.map { session -> if (session == null) null else serverRepository.getServer(session.serverId) }
-			.onEach { server -> notificationRepository.updateServerNotifications(server) }
+			.map { session ->
+				if (session == null) null
+				else serverRepository.getServer(session.serverId)
+			}
+			.onEach { server ->
+				notificationRepository.updateServerNotifications(server)
+			}
 			.launchIn(viewLifecycleOwner.lifecycleScope)
 	}
 }
