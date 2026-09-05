@@ -53,18 +53,15 @@ class HomeFragment : Fragment() {
 		var rowsSupportFragment by remember { mutableStateOf<HomeRowsFragment?>(null) }
 		var heroItem by remember { mutableStateOf<HomeHeroData?>(null) }
 
-		LaunchedEffect(rowsSupportFragment?.getHeroItem()) {
-			rowsSupportFragment?.getHeroItem()?.let { heroItem = HomeHeroData(it) }
-		}
 		LaunchedEffect(rowsFocusRequester) { rowsFocusRequester.requestFocus() }
 
 		JellyfinTheme {
 			Column {
 				MainToolbar(MainToolbarActiveButton.Home)
 
-				if (heroItem != null) {
+				heroItem?.let { hero ->
 					HomeHero(
-						item = heroItem!!.item,
+						item = hero.item,
 						onPlay = { item -> playbackLauncher.launch(requireContext(), listOf(item)) },
 						onDetails = { item -> navigationRepository.navigate(Destinations.itemDetails(item.id)) },
 					)
@@ -88,6 +85,9 @@ class HomeFragment : Fragment() {
 						.fillMaxSize(),
 					onUpdate = { fragment ->
 						rowsSupportFragment = fragment
+						fragment.onHeroItemChanged = { item ->
+							heroItem = item?.let(::HomeHeroData)
+						}
 						fragment.getHeroItem()?.let { heroItem = HomeHeroData(it) }
 					},
 				)
