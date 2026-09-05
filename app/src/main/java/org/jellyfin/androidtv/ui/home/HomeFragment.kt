@@ -32,10 +32,9 @@ import org.jellyfin.androidtv.data.repository.NotificationsRepository
 import org.jellyfin.androidtv.ui.base.JellyfinTheme
 import org.jellyfin.androidtv.ui.navigation.Destinations
 import org.jellyfin.androidtv.ui.navigation.NavigationRepository
+import org.jellyfin.androidtv.ui.playback.PlaybackLauncher
 import org.jellyfin.androidtv.ui.shared.toolbar.MainToolbar
 import org.jellyfin.androidtv.ui.shared.toolbar.MainToolbarActiveButton
-import org.jellyfin.androidtv.ui.playback.PlaybackLauncher
-import org.jellyfin.sdk.model.api.BaseItemDto
 import org.koin.android.ext.android.inject
 
 class HomeFragment : Fragment() {
@@ -52,8 +51,11 @@ class HomeFragment : Fragment() {
 	) = content {
 		val rowsFocusRequester = remember { FocusRequester() }
 		var rowsSupportFragment by remember { mutableStateOf<HomeRowsFragment?>(null) }
-		var heroItem by remember { mutableStateOf<BaseItemDto?>(null) }
+		var heroItem by remember { mutableStateOf<HomeHeroData?>(null) }
 
+		LaunchedEffect(rowsSupportFragment?.getHeroItem()) {
+			rowsSupportFragment?.getHeroItem()?.let { heroItem = HomeHeroData(it) }
+		}
 		LaunchedEffect(rowsFocusRequester) { rowsFocusRequester.requestFocus() }
 
 		JellyfinTheme {
@@ -62,7 +64,7 @@ class HomeFragment : Fragment() {
 
 				if (heroItem != null) {
 					HomeHero(
-						item = heroItem!!,
+						item = heroItem!!.item,
 						onPlay = { item -> playbackLauncher.launch(requireContext(), listOf(item)) },
 						onDetails = { item -> navigationRepository.navigate(Destinations.itemDetails(item.id)) },
 					)
@@ -84,7 +86,10 @@ class HomeFragment : Fragment() {
 							}
 						}
 						.fillMaxSize(),
-					onUpdate = { fragment -> rowsSupportFragment = fragment },
+					onUpdate = { fragment ->
+						rowsSupportFragment = fragment
+						fragment.getHeroItem()?.let { heroItem = HomeHeroData(it) }
+					},
 				)
 			}
 		}
