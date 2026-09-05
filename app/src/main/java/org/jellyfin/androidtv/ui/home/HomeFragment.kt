@@ -88,7 +88,6 @@ class HomeFragment : Fragment() {
 						fragment.onHeroItemChanged = { item ->
 							heroItem = item?.let(::HomeHeroData)
 						}
-						fragment.getHeroItem()?.let { heroItem = HomeHeroData(it) }
 					},
 				)
 			}
