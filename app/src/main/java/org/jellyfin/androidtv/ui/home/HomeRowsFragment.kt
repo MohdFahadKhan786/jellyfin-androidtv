@@ -79,6 +79,8 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 	private var justLoaded = true
 	private var heroItem: BaseItemDto? = null
 
+	var onHeroItemChanged: ((BaseItemDto?) -> Unit)? = null
+
 	private val notificationsRow by lazy { NotificationsHomeFragmentRow(lifecycleScope, notificationsRepository) }
 	private val nowPlaying by lazy { HomeFragmentNowPlayingRow(lifecycleScope, playbackManager, mediaManager) }
 	private val liveTVRow by lazy { HomeFragmentLiveTVRow(requireActivity(), userRepository, navigationRepository) }
@@ -87,17 +89,14 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
-
 		adapter = MutableObjectAdapter<Row>(PositionableListRowPresenter())
 
 		lifecycleScope.launch(Dispatchers.IO) {
 			val currentUser = withTimeout(30.seconds) {
 				userRepository.currentUser.filterNotNull().first()
 			}
-
 			val homesections = userSettingPreferences.activeHomesections
 			val rows = mutableListOf<HomeFragmentRow>()
-
 			if (!isActive) return@launch
 
 			for (section in homesections) when (section) {
@@ -147,19 +146,14 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 
 		customMessageRepository.message
 			.flowWithLifecycle(lifecycle, Lifecycle.State.RESUMED)
-			.onEach { message ->
-				when (message) {
-					CustomMessage.RefreshCurrentItem -> refreshCurrentItem()
-					else -> Unit
-				}
-			}.launchIn(lifecycleScope)
+			.onEach { message -> if (message == CustomMessage.RefreshCurrentItem) refreshCurrentItem() }
+			.launchIn(lifecycleScope)
 
 		lifecycleScope.launch {
 			lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
 				api.webSocket.subscribe<UserDataChangedMessage>()
 					.onEach { refreshRows(force = true, delayed = false) }
 					.launchIn(this)
-
 				api.webSocket.subscribe<LibraryChangedMessage>()
 					.onEach { refreshRows(force = true, delayed = false) }
 					.launchIn(this)
@@ -176,27 +170,22 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 
 	override fun onResume() {
 		super.onResume()
-
 		if (currentRow != null && currentItem != null && currentItem?.baseItem != null && currentItem!!.baseItem!!.id == dataRefreshService.lastDeletedItemId) {
 			(currentRow!!.adapter as ItemRowAdapter).remove(currentItem)
 			currentItem = null
 			dataRefreshService.lastDeletedItemId = null
 		}
-
 		if (!justLoaded) {
 			refreshCurrentItem()
 			refreshRows()
 		} else {
 			justLoaded = false
 		}
-
-		Timber.i("Updating audio queue in HomeFragment (onResume)")
 		nowPlaying.update(requireContext(), adapter as MutableObjectAdapter<Row>)
 	}
 
 	override fun onQueueStatusChanged(hasQueue: Boolean) {
 		if (activity == null || requireActivity().isFinishing) return
-		Timber.i("Updating audio queue in HomeFragment (onQueueStatusChanged)")
 		nowPlaying.update(requireContext(), adapter as MutableObjectAdapter<Row>)
 	}
 
@@ -205,8 +194,7 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 			if (delayed) delay(1.5.seconds)
 			repeat(adapter.size()) { i ->
 				val rowAdapter = (adapter[i] as? ListRow)?.adapter as? ItemRowAdapter
-				if (force) rowAdapter?.Retrieve()
-				else rowAdapter?.ReRetrieveIfNeeded()
+				if (force) rowAdapter?.Retrieve() else rowAdapter?.ReRetrieveIfNeeded()
 			}
 		}
 	}
@@ -214,7 +202,6 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 	private fun refreshCurrentItem() {
 		val adapter = currentRow?.adapter as? ItemRowAdapter ?: return
 		val item = currentItem ?: return
-		Timber.i("Refresh item ${item.getFullName(requireContext())}")
 		adapter.refreshItem(api, this, item)
 	}
 
@@ -225,8 +212,7 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 
 	private inner class ItemViewClickedListener : OnItemViewClickedListener {
 		override fun onItemClicked(itemViewHolder: Presenter.ViewHolder?, item: Any?, rowViewHolder: RowPresenter.ViewHolder?, row: Row?) {
-			if (item !is BaseRowItem) return
-			if (row !is ListRow) return
+			if (item !is BaseRowItem || row !is ListRow) return
 			@Suppress("UNCHECKED_CAST")
 			itemLauncher.launch(item, row.adapter as MutableObjectAdapter<Any>, requireContext())
 		}
@@ -240,15 +226,12 @@ class HomeRowsFragment : RowsSupportFragment(), AudioEventListener, View.OnKeyLi
 			} else {
 				currentItem = item
 				currentRow = row as ListRow
-
 				val itemRowAdapter = row.adapter as? ItemRowAdapter
 				itemRowAdapter?.loadMoreItemsIfNeeded(itemRowAdapter.indexOf(item))
-
 				if (heroItem == null && item.baseItem != null) {
 					heroItem = item.baseItem
-					(parentFragment as? HomeFragment)?.updateHero(heroItem)
+					onHeroItemChanged?.invoke(heroItem)
 				}
-
 				backgroundService.setBackground(item.baseItem)
 			}
 		}
