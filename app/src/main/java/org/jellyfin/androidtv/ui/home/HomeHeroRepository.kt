@@ -1,5 +1,6 @@
 package org.jellyfin.androidtv.ui.home
 
+import kotlinx.coroutines.flow.first
 import org.jellyfin.androidtv.auth.repository.UserRepository
 import org.jellyfin.androidtv.data.repository.ItemRepository
 import org.jellyfin.sdk.api.client.ApiClient
@@ -12,19 +13,18 @@ class HomeHeroRepository(
 	private val userRepository: UserRepository,
 ) {
 	suspend fun getFeaturedItem(): BaseItemDto? {
-		val user = userRepository.currentUser.value ?: return null
-		val request = GetLatestMediaRequest(
-			userId = user.id,
-			parentId = null,
-			includeItemTypes = setOf(BaseItemKind.MOVIE, BaseItemKind.SERIES),
-			fields = ItemRepository.browseFields,
-			imageTypeLimit = 1,
-			limit = 20,
-			groupItems = false,
+		val user = userRepository.currentUser.first() ?: return null
+		val response = api.get(
+			GetLatestMediaRequest(
+				userId = user.id,
+				fields = ItemRepository.browseFields,
+				imageTypeLimit = 1,
+				parentId = null,
+				includeItemTypes = setOf(BaseItemKind.MOVIE, BaseItemKind.SERIES),
+				groupItems = false,
+				limit = 20,
+			)
 		)
-
-		return api.get(request).content?.firstOrNull { item ->
-			item.backdropImageTags?.isNotEmpty() == true
-		}
+		return response.content?.firstOrNull { item -> !item.isFolder }
 	}
 }
